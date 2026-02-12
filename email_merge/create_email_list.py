@@ -73,6 +73,7 @@ support_email_df = pd.read_excel('../data/raw_data/Neon_Files/25-10 Support Emai
 #Pastors
 church_umc_df = pd.read_excel('../data/raw_data/UMC/UMC Church Data - MWH Edits.xlsx')
 church_non_umc_df = pd.read_excel('../data/raw_data/UMC/Non UMC Churches.xlsx')
+clergy_df = pd.read_excel('../data/raw_data/UMC/Neon Clergy Data.xlsx')
 
 #%% Make Lists of Community Members
 
@@ -82,13 +83,19 @@ mail_sub_list = list(mailchimp_sub_df['Email Address'])
 mail_unsub_list = list(mailchimp_unsub_df['Email Address'])
 umc_list = list(church_umc_df['Email Address'])
 non_umc_list = list(church_non_umc_df['Email Address'])
+clergy_list = list(clergy_df['Email Address2'])
 neon_pray_list = list(neon_pray_df['Email'])
 support_email_list = list(support_email_df['Email'])
 
 #using the set function to remove duplicates from all lists joined together
 
 # making a list of all the pastors
-pastor_list = [x for x in list(set(umc_list + non_umc_list)) if str(x) != 'nan']
+pastor_list = [x for x in list(set(
+    umc_list + 
+    non_umc_list + 
+    clergy_list)
+    - set(master_bad_email_list)
+    ) if str(x) != 'nan']
 
 # making a list of all data, duplicating all emails with the set function, removing unsubscribes/pastors/failed emails from the list
 concat_list = [x for x in list(set(
@@ -101,10 +108,30 @@ concat_list = [x for x in list(set(
     - set(master_bad_email_list)
     ) if str(x) != 'nan']
 len(concat_list)
-# without pastor removal: 1195
-# without mail_unsub removal: 1183
-# without bad email removalL 1143
-# with all three removals: 1142
+
+#%%
+community_member_group1_df = pd.DataFrame(concat_list[:500]).rename(columns={0:'Email'})
+community_member_group1_df['Group'] = 'Community Member - Group 1'
+
+community_member_group2_df = pd.DataFrame(concat_list[500:]).rename(columns={0:'Email'})
+community_member_group2_df['Group'] = 'Community Member - Group 2'
+
+pastor_df = pd.DataFrame(pastor_list).rename(columns={0:'Email'})
+pastor_df['Group'] = 'Clergy & Churches'
+
+bad_emails_df = pd.DataFrame(master_bad_email_list).rename(columns={0:'Email'})
+bad_emails_df['Group'] = 'Failed Emails'
+
+output_df = pd.concat(
+    [community_member_group1_df,
+    community_member_group2_df,
+    pastor_df,
+    bad_emails_df], ignore_index=True)
+
+#%% Write output to xlsx file for jean carlos
+
+output_df.to_excel(f"../data/output_data/Neon Email List - {CURRENT_DATE}.xlsx",index = False)
+
 #%%
 
 n = 500 
